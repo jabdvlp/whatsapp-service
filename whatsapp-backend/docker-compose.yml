@@ -1,0 +1,35 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-whuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-whpass}
+      POSTGRES_DB: ${POSTGRES_DB:-whdb}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://whuser:whpass@db:5432/whdb}
+      WABA_PHONE_NUMBER_ID: ${WABA_PHONE_NUMBER_ID}
+      WABA_ACCESS_TOKEN: ${WABA_ACCESS_TOKEN}
+      WABA_VERIFY_TOKEN: ${WABA_VERIFY_TOKEN}
+      META_APP_SECRET: ${META_APP_SECRET}
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+volumes:
+  db_data:
