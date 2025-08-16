@@ -20,10 +20,18 @@ async def on_startup():
 async def health():
     return {"status": "ok", "env": settings.ENV}
 
-@app.get("/messages", response_model=list[MessageOut])
+@app.get("/messages", response_model=list[schemas.MessageOut])
 async def list_messages(session: AsyncSession = Depends(get_session)):
-    res = await session.execute(select(Message).order_by(Message.created_at.desc()).limit(100))
-    return [MessageOut.model_validate(m) for m in res.scalars().all()]
+    return await crud.get_messages(session, limit=100)
+
+
+@app.post("/messages", response_model=schemas.MessageOut)
+async def create_message(
+    message: schemas.MessageCreate,
+    session: AsyncSession = Depends(get_session),
+):
+    return await crud.create_message(session, message)
+
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host=settings.HOST, port=settings.PORT, reload=False)
